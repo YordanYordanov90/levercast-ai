@@ -1,0 +1,8 @@
+ALTER TABLE "posts" ADD COLUMN "title" text;--> statement-breakpoint
+ALTER TABLE "templates" ADD COLUMN "user_id" uuid;--> statement-breakpoint
+ALTER TABLE "templates" ADD CONSTRAINT "templates_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+INSERT INTO "templates" ("id", "user_id", "name", "prompt", "metadata", "created_at", "updated_at") VALUES
+(gen_random_uuid(), NULL, 'Product Launch', 'Introducing [Product Name] - [Brief description]. Available now at [Link]. #[Hashtag]', '{"description": "Template for announcing new products or features", "category": "Announcements", "platforms": ["linkedin", "twitter"]}'::jsonb, now(), now()),
+(gen_random_uuid(), NULL, 'Weekly Update', 'This week we: [Achievement 1], [Achievement 2], [Achievement 3]. Next week: [Goals].', '{"description": "Share weekly progress and achievements", "category": "Updates", "platforms": ["linkedin", "twitter"]}'::jsonb, now(), now()),
+(gen_random_uuid(), NULL, 'Thought Leadership', 'Thoughts on [Topic]: [Key insight]. What do you think? #[Hashtag]', '{"description": "Share insights and thought leadership content", "category": "Insights", "platforms": ["linkedin"]}'::jsonb, now(), now()),
+(gen_random_uuid(), NULL, 'Event Promotion', 'Join us for [Event Name] on [Date]! [Event description]. Register: [Link]', '{"description": "Promote upcoming events and webinars", "category": "Events", "platforms": ["linkedin", "twitter"]}'::jsonb, now(), now());
