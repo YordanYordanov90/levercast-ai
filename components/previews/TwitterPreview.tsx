@@ -1,21 +1,36 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { cn, initialsFromDisplayName } from '@/lib/utils'
+import Image from 'next/image'
 
 interface TwitterPreviewProps {
   content: string
   onChange?: (content: string) => void
   editable?: boolean
   imageUrl?: string
+  authorName: string
+  /** Without @ prefix, e.g. "janedoe". */
+  authorHandle?: string
+  authorAvatarUrl?: string
 }
 
 const TWITTER_MAX_CHARS = 280
 
-export function TwitterPreview({ content, onChange, editable, imageUrl }: TwitterPreviewProps) {
+export function TwitterPreview({
+  content,
+  onChange,
+  editable,
+  imageUrl,
+  authorName,
+  authorHandle,
+  authorAvatarUrl,
+}: TwitterPreviewProps) {
   const charCount = content.length
   const percentage = (charCount / TWITTER_MAX_CHARS) * 100
   const isOverLimit = charCount > TWITTER_MAX_CHARS
   const isNearLimit = percentage >= 80 && percentage < 100
+  const initials = initialsFromDisplayName(authorName)
+  const handleHref = authorHandle ? authorHandle.replace(/^@/, '') : ''
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -33,13 +48,26 @@ export function TwitterPreview({ content, onChange, editable, imageUrl }: Twitte
       </div>
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <div className="size-10 rounded-full bg-sidebar-primary flex items-center justify-center text-white font-medium">
-            JD
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-1">
-              <p className="font-medium text-sm">John Doe</p>
-              <span className="text-xs text-muted-foreground">@johndoe</span>
+          {authorAvatarUrl ? (
+            <Image
+              src={authorAvatarUrl}
+              alt=""
+              width={40}
+              height={40}
+              className="size-10 rounded-full object-cover shrink-0"
+              unoptimized
+            />
+          ) : (
+            <div className="size-10 rounded-full bg-sidebar-primary flex items-center justify-center text-white font-medium shrink-0 text-sm">
+              {initials}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1 flex-wrap">
+              <p className="font-medium text-sm">{authorName}</p>
+              {handleHref ? (
+                <span className="text-xs text-muted-foreground">@{handleHref}</span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -58,17 +86,20 @@ export function TwitterPreview({ content, onChange, editable, imageUrl }: Twitte
           <p className="mt-3 text-sm whitespace-pre-wrap">{content}</p>
         )}
         {imageUrl && (
-          <div className="mt-3">
-            <img
+          <div className="mt-3 relative h-[280px] w-full overflow-hidden rounded-xl">
+            <Image
               src={imageUrl}
               alt="Post attachment"
-              className="w-full max-h-[280px] object-cover rounded-xl"
+              fill
+              sizes="(min-width: 768px) 600px, 100vw"
+              className="object-cover"
+              unoptimized
             />
           </div>
         )}
         {isOverLimit && (
           <p className="mt-2 text-xs text-destructive">
-            Content exceeds Twitter's {TWITTER_MAX_CHARS} character limit
+            Content exceeds Twitter&apos;s {TWITTER_MAX_CHARS} character limit
           </p>
         )}
       </div>

@@ -2,7 +2,6 @@
 
 import { UserButton } from '@clerk/nextjs'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
-import { cn } from '@/lib/utils'
 
 interface ProfileDropdownProps {
   collapsed?: boolean

@@ -8,12 +8,12 @@ import { TwitterPreview } from '@/components/previews/TwitterPreview'
 import { PlatformToggle, PlatformId } from '@/components/platform/PlatformToggle'
 import { SaveStatusIndicator, SaveStatus } from '@/components/editor/SaveStatusIndicator'
 import { ImageUpload } from '@/components/editor/ImageUpload'
-import { mockConnectionState } from '@/lib/mock-data'
 import { fetchJson } from '@/lib/api/fetch-json'
 import { uploadPostImageViaR2 } from '@/lib/api/upload-post-image'
 import type { Post } from '@/types/post'
 import type { Template } from '@/types/template'
-import { Sparkles, Save, Send } from 'lucide-react'
+import { EditorSkeleton } from '@/components/loaders/EditorSkeleton'
+import { Loader2, Sparkles, Save, Send } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ImageFile {
@@ -61,11 +61,31 @@ function buildPayload(args: {
   }
 }
 
-export function EditPostClient() {
+export interface EditPostClientProps {
+  linkedinConnected: boolean
+  linkedinDisplayName?: string
+  twitterConnected: boolean
+  twitterDisplayName?: string
+  viewerDisplayName: string
+  viewerHandle?: string
+  viewerAvatarUrl?: string
+}
+
+export function EditPostClient({
+  linkedinConnected,
+  linkedinDisplayName,
+  twitterConnected,
+  twitterDisplayName,
+  viewerDisplayName,
+  viewerHandle,
+  viewerAvatarUrl,
+}: EditPostClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const postIdParam = searchParams.get('id')
   const templateIdParam = searchParams.get('template')
+
+  const [actionInFlight, setActionInFlight] = useState<null | 'save' | 'publish'>(null)
 
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -79,8 +99,8 @@ export function EditPostClient() {
   const [currentPostId, setCurrentPostId] = useState<string | null>(null)
 
   const [selectedPlatforms, setSelectedPlatforms] = useState({
-    linkedin: mockConnectionState.linkedin.connected || false,
-    twitter: mockConnectionState.twitter.connected || false,
+    linkedin: linkedinConnected,
+    twitter: twitterConnected,
   })
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -93,6 +113,8 @@ export function EditPostClient() {
   })
 
   const savingRef = useRef(false)
+  const prevLinkedinConnectedRef = useRef(linkedinConnected)
+  const prevTwitterConnectedRef = useRef(twitterConnected)
 
   const [formattingTemplates, setFormattingTemplates] = useState<Template[]>([])
   const [selectedFormattingTemplateId, setSelectedFormattingTemplateId] = useState('')
@@ -204,6 +226,28 @@ export function EditPostClient() {
     if (exists) setSelectedFormattingTemplateId(templateIdParam)
   }, [templateIdParam, formattingTemplates])
 
+  useEffect(() => {
+    const prev = prevLinkedinConnectedRef.current
+    if (!prev && linkedinConnected) {
+      setSelectedPlatforms((p) => ({ ...p, linkedin: true }))
+    }
+    if (prev && !linkedinConnected) {
+      setSelectedPlatforms((p) => ({ ...p, linkedin: false }))
+    }
+    prevLinkedinConnectedRef.current = linkedinConnected
+  }, [linkedinConnected])
+
+  useEffect(() => {
+    const prev = prevTwitterConnectedRef.current
+    if (!prev && twitterConnected) {
+      setSelectedPlatforms((p) => ({ ...p, twitter: true }))
+    }
+    if (prev && !twitterConnected) {
+      setSelectedPlatforms((p) => ({ ...p, twitter: false }))
+    }
+    prevTwitterConnectedRef.current = twitterConnected
+  }, [twitterConnected])
+
   const isDirty = useMemo(
     () =>
       title !== savedBaseline.title ||
@@ -313,6 +357,154 @@ export function EditPostClient() {
     ],
   )
 
+  const publishToSelectedPlatformsFlow = useCallback(async () => {
+    const publishTo: PlatformId[] = []
+    if (selectedPlatforms.linkedin) publishTo.push('linkedin')
+    if (selectedPlatforms.twitter) publishTo.push('twitter')
+
+    if (publishTo.length === 0) {
+      toast.error('Please select at least one platform first')
+      return
+    }
+
+    if (publishTo.includes('linkedin') && !linkedinConnected) {
+      toast.error('Connect LinkedIn in Settings to publish there.')
+      return
+    }
+
+    if (publishTo.includes('twitter') && !twitterConnected) {
+      toast.error('Connect Twitter / X in Settings to publish there.')
+      return
+    }
+
+    const liText = linkedinContent.trim() || content.trim()
+    const twText = twitterContent.trim() || content.trim()
+    if (publishTo.includes('linkedin') && !liText) {
+      toast.error('Add content for LinkedIn before publishing.')
+      return
+    }
+    if (publishTo.includes('twitter') && !twText) {
+      toast.error('Add content for Twitter / X before publishing.')
+      return
+    }
+
+    if (savingRef.current) return
+    savingRef.current = true
+    setSaveStatus('saving')
+    try {
+      let resolvedImageUrl = serverImageUrl
+      const pendingFile = images[0]?.file
+      if (pendingFile) {
+        resolvedImageUrl = await uploadPostImageViaR2(pendingFile)
+      }
+      if (resolvedImageUrl && publishTo.includes('linkedin')) {
+        toast.warning(
+          'LinkedIn shares are text-only for now. Your image is saved but not attached on LinkedIn.',
+        )
+      }
+      if (resolvedImageUrl && publishTo.includes('twitter')) {
+        toast.warning(
+          'Twitter / X is text-only for now. Your image is saved but not attached on Twitter / X.',
+        )
+      }
+
+      const draftPayload = buildPayload({
+        title,
+        content,
+        linkedin: linkedinContent,
+        twitter: twitterContent,
+        serverImageUrl: resolvedImageUrl,
+        images: [],
+        status: 'draft',
+      })
+
+      let postId = currentPostId ?? postIdParam
+      if (!postId) {
+        const created = await fetchJson<Post>('/api/posts', {
+          method: 'POST',
+          body: JSON.stringify({ ...draftPayload, status: 'draft' }),
+        })
+        postId = created.id
+        setCurrentPostId(created.id)
+        router.replace(`/edit-post?id=${created.id}`, { scroll: false })
+      } else {
+        await fetchJson<Post>(`/api/posts/${postId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ ...draftPayload, status: 'draft' }),
+        })
+      }
+
+      const publishBody = {
+        title: draftPayload.title,
+        rawContent: draftPayload.rawContent,
+        formattedContent: {
+          ...draftPayload.formattedContent,
+          ...(publishTo.includes('linkedin') ? { linkedin: liText } : {}),
+          ...(publishTo.includes('twitter') ? { twitter: twText } : {}),
+        },
+        imageUrl: draftPayload.imageUrl,
+        publishTo,
+      }
+
+      const result = await fetchJson<Post>(`/api/posts/${postId}/publish`, {
+        method: 'POST',
+        body: JSON.stringify(publishBody),
+      })
+
+      setServerImageUrl(result.imageUrl ?? null)
+      images.forEach((img) => URL.revokeObjectURL(img.url))
+      setImages([])
+
+      setSavedBaseline({
+        title: result.title,
+        content: result.content,
+        linkedin:
+          result.platforms.find((p) => p.name === 'linkedin')?.content ?? '',
+        twitter:
+          result.platforms.find((p) => p.name === 'twitter')?.content ?? '',
+      })
+      setTitle(result.title)
+      setContent(result.content)
+      setLinkedinContent(
+        result.platforms.find((p) => p.name === 'linkedin')?.content ?? '',
+      )
+      setTwitterContent(
+        result.platforms.find((p) => p.name === 'twitter')?.content ?? '',
+      )
+
+      setSaveStatus('saved')
+      setLastSaved(new Date())
+      toast.success(
+        publishTo.length === 1
+          ? publishTo[0] === 'linkedin'
+            ? 'Published to LinkedIn'
+            : 'Published to Twitter / X'
+          : 'Published to selected platforms',
+      )
+      router.refresh()
+    } catch (e) {
+      setSaveStatus('unsaved')
+      const msg = e instanceof Error ? e.message : 'Publish failed'
+      toast.error(msg)
+    } finally {
+      savingRef.current = false
+    }
+  }, [
+    title,
+    content,
+    linkedinContent,
+    twitterContent,
+    serverImageUrl,
+    images,
+    currentPostId,
+    postIdParam,
+    router,
+    selectedPlatforms.linkedin,
+    selectedPlatforms.twitter,
+    linkedinConnected,
+    twitterConnected,
+  ])
+
   useEffect(() => {
     if (loading || loadError) return
     if (!isDirty || saveStatus === 'saving') return
@@ -368,6 +560,7 @@ export function EditPostClient() {
   }
 
   const handleSaveDraft = () => {
+    setActionInFlight('save')
     void persist('draft', false)
   }
 
@@ -380,8 +573,15 @@ export function EditPostClient() {
       toast.error('Please select at least one platform first')
       return
     }
-    void persist('published', false)
+    setActionInFlight('publish')
+    void publishToSelectedPlatformsFlow()
   }
+
+  useEffect(() => {
+    if (saveStatus !== 'saving') {
+      setActionInFlight(null)
+    }
+  }, [saveStatus])
 
   const previewImage =
     images.length > 0
@@ -390,7 +590,9 @@ export function EditPostClient() {
 
   if (loading) {
     return (
-      <div className="p-8 text-muted-foreground text-sm">Loading editor…</div>
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+        <EditorSkeleton />
+      </div>
     )
   }
 
@@ -505,24 +707,17 @@ export function EditPostClient() {
                   label="LinkedIn"
                   selected={selectedPlatforms.linkedin}
                   onChange={(selected) => handlePlatformToggle('linkedin', selected)}
-                  connected={mockConnectionState.linkedin.connected}
-                  username={
-                    mockConnectionState.linkedin.connected
-                      ? mockConnectionState.linkedin.username
-                      : undefined
-                  }
+                  connected={linkedinConnected}
+                  username={linkedinDisplayName}
+                  usernamePrefix=""
                 />
                 <PlatformToggle
                   id="twitter"
                   label="Twitter/X"
                   selected={selectedPlatforms.twitter}
                   onChange={(selected) => handlePlatformToggle('twitter', selected)}
-                  connected={mockConnectionState.twitter.connected}
-                  username={
-                    mockConnectionState.twitter.connected
-                      ? mockConnectionState.twitter.username
-                      : undefined
-                  }
+                  connected={twitterConnected}
+                  username={twitterDisplayName}
                 />
               </div>
             </div>
@@ -530,13 +725,26 @@ export function EditPostClient() {
             <div className="rounded-xl border border-border bg-card p-6">
               <h2 className="text-sm font-semibold mb-3">Actions</h2>
               <div className="flex flex-col gap-2">
-                <Button variant="outline" onClick={handleSaveDraft} className="w-full">
-                  <Save className="size-4 mr-2" />
-                  Save Draft
+                <Button
+                  variant="outline"
+                  onClick={handleSaveDraft}
+                  className="w-full"
+                  disabled={saveStatus === 'saving'}
+                >
+                  {saveStatus === 'saving' && actionInFlight === 'save' ? (
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="size-4 mr-2" />
+                  )}
+                  {saveStatus === 'saving' && actionInFlight === 'save' ? 'Saving…' : 'Save Draft'}
                 </Button>
-                <Button onClick={handlePublish} className="w-full">
-                  <Send className="size-4 mr-2" />
-                  Publish
+                <Button onClick={handlePublish} className="w-full" disabled={saveStatus === 'saving'}>
+                  {saveStatus === 'saving' && actionInFlight === 'publish' ? (
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="size-4 mr-2" />
+                  )}
+                  {saveStatus === 'saving' && actionInFlight === 'publish' ? 'Publishing…' : 'Publish'}
                 </Button>
               </div>
             </div>
@@ -552,12 +760,17 @@ export function EditPostClient() {
             onChange={setLinkedinContent}
             editable={selectedPlatforms.linkedin}
             imageUrl={selectedPlatforms.linkedin ? previewImage : undefined}
+            authorName={linkedinDisplayName ?? viewerDisplayName}
+            authorAvatarUrl={viewerAvatarUrl}
           />
           <TwitterPreview
             content={twitterContent || content}
             onChange={setTwitterContent}
             editable={selectedPlatforms.twitter}
             imageUrl={selectedPlatforms.twitter ? previewImage : undefined}
+            authorName={viewerDisplayName}
+            authorHandle={viewerHandle}
+            authorAvatarUrl={viewerAvatarUrl}
           />
         </div>
       </section>

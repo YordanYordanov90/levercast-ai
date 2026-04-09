@@ -1,10 +1,10 @@
 import { ScrollReveal } from "./scroll-reveal"
 
 const stats = [
-  { value: "10k+", label: "Posts published" },
-  { value: "2 min", label: "Average time to publish" },
-  { value: "3×", label: "More content, same effort" },
-  { value: "2", label: "Platforms supported" },
+  { value: "2", label: "Platforms at launch" },
+  { value: "<30s", label: "To a formatted post" },
+  { value: "0", label: "Hours of formatting work" },
+  { value: "1", label: "Click to publish" },
 ]
 
 export function Stats() {

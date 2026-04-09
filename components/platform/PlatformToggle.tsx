@@ -10,7 +10,10 @@ interface PlatformToggleProps {
   selected: boolean
   onChange: (selected: boolean) => void
   connected?: boolean
+  /** Shown when connected; for X-style handles use with usernamePrefix "@". */
   username?: string
+  /** Prefix before username (default "@"; use "" for display names e.g. LinkedIn). */
+  usernamePrefix?: string
 }
 
 const platformConfig: Record<PlatformId, { color: string; icon: string }> = {
@@ -31,6 +34,7 @@ export function PlatformToggle({
   onChange,
   connected = true,
   username,
+  usernamePrefix = '@',
 }: PlatformToggleProps) {
   const config = platformConfig[id]
 
@@ -43,7 +47,10 @@ export function PlatformToggle({
         <div>
           <p className="font-medium text-sm">{label}</p>
           {connected && username ? (
-            <p className="text-xs text-muted-foreground">@{username}</p>
+            <p className="text-xs text-muted-foreground">
+              {usernamePrefix}
+              {username}
+            </p>
           ) : connected ? (
             <p className="text-xs text-primary">Connected</p>
           ) : (

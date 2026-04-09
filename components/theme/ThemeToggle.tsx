@@ -3,15 +3,19 @@
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+
+function useIsClient(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
+}
 
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const isClient = useIsClient()
 
   const currentTheme = resolvedTheme || theme
 
@@ -20,7 +24,7 @@ export function ThemeToggle() {
     setTheme(newTheme)
   }
 
-  if (!mounted) {
+  if (!isClient) {
     return (
       <Button variant="ghost" size="icon" aria-label="Toggle theme" disabled>
         <Sun className="size-4" />

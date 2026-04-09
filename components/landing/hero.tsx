@@ -65,7 +65,7 @@ export function Hero() {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up opacity-0 animation-delay-400">
           <Link
-            href="#"
+            href="/sign-up"
             className="group flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-md hover:opacity-90 transition-all text-sm shadow-[0_0_30px_-8px_oklch(0.72_0.19_45_/_0.4)] hover:shadow-[0_0_40px_-8px_oklch(0.72_0.19_45_/_0.6)] hover:scale-[1.02] active:scale-[0.98]"
           >
             Start for free

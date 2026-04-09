@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Navbar } from '@/components/landing/navbar'
 import { Hero } from '@/components/landing/hero'
 import { AppPreview } from '@/components/landing/app-preview'
@@ -8,6 +9,26 @@ import { Testimonials } from '@/components/landing/testimonials'
 import { Pricing } from '@/components/landing/pricing'
 import { CTA } from '@/components/landing/cta'
 import { Footer } from '@/components/landing/footer'
+import { FloatingCta } from "@/components/landing/FloatingCta"
+
+export const metadata: Metadata = {
+  title: "Levercast — AI-Powered Content Creation for Entrepreneurs",
+  description:
+    "Dump your raw ideas and watch AI transform them into polished LinkedIn and Twitter posts. Preview, edit, and publish with one click.",
+  openGraph: {
+    title: "Levercast — Your Ideas, Published in Seconds",
+    description:
+      "AI-powered content creation for busy entrepreneurs. From raw idea to published post in under 2 minutes.",
+    type: "website",
+    siteName: "Levercast",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Levercast — Your Ideas, Published in Seconds",
+    description:
+      "AI-powered content creation for busy entrepreneurs. From raw idea to published post in under 2 minutes.",
+  },
+}
 
 export default function Home() {
   return (
@@ -27,6 +48,7 @@ export default function Home() {
       <Pricing />
       <CTA />
       <Footer />
+      <FloatingCta targetId="pricing" />
     </main>
   )
 }

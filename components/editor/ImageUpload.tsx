@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
-import { ImagePlus, X, Upload } from 'lucide-react'
+import Image from 'next/image'
+import { X, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ImageFile {
@@ -128,10 +129,13 @@ export function ImageUpload({ images, onChange, maxImages = 3 }: ImageUploadProp
               className="relative group"
             >
               <div className="size-20 rounded-md overflow-hidden border border-border">
-                <img
+                <Image
                   src={image.url}
                   alt={image.name}
+                  width={80}
+                  height={80}
                   className="size-full object-cover"
+                  unoptimized
                 />
               </div>
               <button

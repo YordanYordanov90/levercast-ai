@@ -1,10 +1,55 @@
-'use client'
+import { Suspense } from 'react'
 
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme/ThemeToggle'
-import { toast } from 'sonner'
+import { ensureUser } from '@/lib/auth/ensure-user'
+import { getIntegration } from '@/lib/db/integrations'
+import { LinkedInConnect } from '@/components/settings/LinkedInConnect'
+import { SettingsAppearanceSection } from '@/components/settings/SettingsAppearanceSection'
+import { SettingsAccountSection } from '@/components/settings/SettingsAccountSection'
+import { TwitterConnect } from '@/components/settings/TwitterConnect'
+import type { IntegrationRow } from '@/lib/db/integrations'
+import type { IntegrationUiStatus } from '@/types/integrations'
 
-export default function SettingsPage() {
+function integrationPropsFromRow(row: IntegrationRow | null): {
+  status: IntegrationUiStatus
+  displayName?: string
+} {
+  if (!row || row.status === 'disconnected') {
+    return { status: 'disconnected' }
+  }
+  if (row.status === 'error') {
+    return {
+      status: 'error',
+      displayName: row.platformDisplayName ?? undefined,
+    }
+  }
+  return {
+    status: 'connected',
+    displayName: row.platformDisplayName ?? undefined,
+  }
+}
+
+function LinkedInConnectFallback() {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="size-10 rounded bg-muted" />
+        <div className="space-y-2">
+          <div className="h-4 w-24 rounded bg-muted" />
+          <div className="h-3 w-40 rounded bg-muted" />
+        </div>
+      </div>
+      <div className="h-9 w-24 rounded-md bg-muted" />
+    </div>
+  )
+}
+
+export default async function SettingsPage() {
+  const user = await ensureUser()
+  const linkedinRow = await getIntegration(user.id, 'linkedin')
+  const twitterRow = await getIntegration(user.id, 'twitter')
+  const linkedIn = integrationPropsFromRow(linkedinRow)
+  const twitter = integrationPropsFromRow(twitterRow)
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
@@ -13,16 +58,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6 max-w-2xl">
-        <section className="rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:shadow-lg">
-          <h2 className="text-lg font-semibold mb-4">Appearance</h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Theme</p>
-              <p className="text-sm text-muted-foreground">Choose your preferred theme</p>
-            </div>
-            <ThemeToggle />
-          </div>
-        </section>
+        <SettingsAppearanceSection />
 
         <section className="rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:shadow-lg">
           <h2 className="text-lg font-semibold mb-4">Integrations</h2>
@@ -31,53 +67,16 @@ export default function SettingsPage() {
           </p>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                  in
-                </div>
-                <div>
-                  <p className="font-medium">LinkedIn</p>
-                  <p className="text-sm text-muted-foreground">Not connected</p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={() => toast.info('LinkedIn connection would start here')}>
-                Connect
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded bg-black flex items-center justify-center text-white font-bold text-sm">
-                  X
-                </div>
-                <div>
-                  <p className="font-medium">Twitter / X</p>
-                  <p className="text-sm text-muted-foreground">Not connected</p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={() => toast.info('Twitter connection would start here')}>
-                Connect
-              </Button>
-            </div>
+            <Suspense fallback={<LinkedInConnectFallback />}>
+              <LinkedInConnect status={linkedIn.status} displayName={linkedIn.displayName} />
+            </Suspense>
+            <Suspense fallback={<LinkedInConnectFallback />}>
+              <TwitterConnect status={twitter.status} displayName={twitter.displayName} />
+            </Suspense>
           </div>
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:shadow-lg">
-          <h2 className="text-lg font-semibold mb-4">Account</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Manage your account settings and preferences.
-          </p>
-
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full sm:w-auto" onClick={() => toast.info('Profile update would open here')}>
-              Update Profile
-            </Button>
-            <Button variant="outline" className="w-full sm:w-auto" onClick={() => toast.info('Password change would open here')}>
-              Change Password
-            </Button>
-          </div>
-        </section>
+        <SettingsAccountSection />
       </div>
     </div>
   )

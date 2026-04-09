@@ -15,6 +15,7 @@ const plans = [
       "Manual publish",
     ],
     cta: "Get started free",
+    href: "/sign-up",
     highlight: false,
   },
   {
@@ -31,6 +32,7 @@ const plans = [
       "Priority support",
     ],
     cta: "Start Pro free for 14 days",
+    href: "/sign-up?plan=pro",
     highlight: true,
   },
   {
@@ -46,6 +48,7 @@ const plans = [
       "Dedicated onboarding",
     ],
     cta: "Contact us",
+    href: "/sign-up?plan=team",
     highlight: false,
   },
 ]
@@ -117,7 +120,7 @@ export function Pricing() {
                 </ul>
 
                 <Link
-                  href="#"
+                  href={plan.href}
                   className={`block text-center text-sm font-semibold py-2.5 rounded-md transition-all ${
                     plan.highlight
                       ? "bg-primary text-primary-foreground hover:opacity-90 shadow-[0_0_20px_-5px_oklch(0.72_0.19_45_/_0.4)] hover:scale-[1.02] active:scale-[0.98]"

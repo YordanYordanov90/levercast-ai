@@ -28,6 +28,7 @@ export function Navbar() {
     }
     
     window.addEventListener("scroll", onScroll, { passive: true })
+    onScroll()
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
@@ -35,14 +36,14 @@ export function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-[0_4px_30px_-10px_oklch(0_0_0_/_0.1)]" 
+          ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-[0_4px_30px_-10px_oklch(0_0_0/0.1)]" 
           : "bg-transparent"
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-primary to-accent-gold flex items-center justify-center shadow-[0_0_15px_-3px_oklch(0.72_0.19_45_/_0.4)]">
+          <div className="w-7 h-7 rounded-md bg-linear-to-br from-primary to-accent-gold flex items-center justify-center shadow-[0_0_15px_-3px_oklch(0.72_0.19_45/0.4)]">
             <Zap className="w-4 h-4 text-primary-foreground" fill="currentColor" />
           </div>
           <span className="font-bold text-lg tracking-tight text-foreground">Levercast</span>
@@ -83,7 +84,7 @@ export function Navbar() {
               </Link>
               <Link
                 href="/sign-up"
-                className="text-sm bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-all shadow-[0_0_20px_-5px_oklch(0.72_0.19_45_/_0.4)] hover:shadow-[0_0_25px_-5px_oklch(0.72_0.19_45_/_0.6)] hover:scale-[1.02] active:scale-[0.98]"
+                className="text-sm bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-all shadow-[0_0_20px_-5px_oklch(0.72_0.19_45/0.4)] hover:shadow-[0_0_25px_-5px_oklch(0.72_0.19_45/0.6)] hover:scale-[1.02] active:scale-[0.98]"
               >
                 Get started free
               </Link>
@@ -139,7 +140,7 @@ export function Navbar() {
               </Link>
               <Link
                 href="/sign-up"
-                className="text-sm bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md text-center hover:opacity-90 transition-opacity shadow-[0_0_20px_-5px_oklch(0.72_0.19_45_/_0.4)]"
+                className="text-sm bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-md text-center hover:opacity-90 transition-opacity shadow-[0_0_20px_-5px_oklch(0.72_0.19_45/0.4)]"
                 onClick={() => setMobileOpen(false)}
               >
                 Get started free
@@ -152,7 +153,7 @@ export function Navbar() {
       {/* Scroll progress bar */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-border overflow-hidden">
         <div 
-          className="h-full bg-gradient-to-r from-primary to-accent-gold transition-all duration-150 ease-out"
+          className="h-full bg-linear-to-r from-primary to-accent-gold transition-all duration-150 ease-out"
           style={{ width: `${scrollProgress}%` }}
         />
       </div>

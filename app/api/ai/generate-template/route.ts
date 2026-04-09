@@ -6,6 +6,7 @@ import {
 } from "@/lib/ai/prompts";
 import { getOpenAiModel } from "@/lib/ai/openai-model";
 import { getDbUserOrNull } from "@/lib/auth/api-user";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   generateTemplateOutputSchema,
   generateTemplateRequestSchema,
@@ -18,6 +19,14 @@ function jsonError(message: string, status: number) {
 export async function POST(req: Request) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const rl = await checkRateLimit("ai", user.id);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: rl.headers },
+    );
+  }
 
   if (!process.env.OPENAI_API_KEY?.trim()) {
     return jsonError("AI generation is not configured", 503);
@@ -53,14 +62,17 @@ export async function POST(req: Request) {
       prompt: `User request:\n${d.description.trim()}`,
     });
 
-    return NextResponse.json({
-      data: {
-        name: object.name.trim(),
-        description: object.description.trim(),
-        category: object.category.trim(),
-        prompt: object.prompt.trim(),
+    return NextResponse.json(
+      {
+        data: {
+          name: object.name.trim(),
+          description: object.description.trim(),
+          category: object.category.trim(),
+          prompt: object.prompt.trim(),
+        },
       },
-    });
+      { headers: rl.headers },
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Generation failed";
     console.error("[ai/generate-template]", e);

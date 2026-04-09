@@ -1,5 +1,4 @@
 import { SignIn } from '@clerk/nextjs';
-import { dark } from '@clerk/themes';
 
 export default function SignInPage() {
   return (
@@ -9,9 +8,6 @@ export default function SignInPage() {
         path="/sign-in"
         signUpUrl="/sign-up"
         forceRedirectUrl="/dashboard"
-        appearance={{
-          baseTheme: dark,
-        }}
       />
     </div>
   );

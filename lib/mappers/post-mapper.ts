@@ -3,6 +3,21 @@ import type { Post, PostPlatform } from "@/types/post";
 
 type PostRow = typeof posts.$inferSelect;
 
+function linkedinPublishedUrlFromFormatted(
+  formatted: Record<string, unknown>,
+): string | undefined {
+  const publish = formatted._publish;
+  if (!publish || typeof publish !== "object" || Array.isArray(publish)) {
+    return undefined;
+  }
+  const liPub = (publish as Record<string, unknown>).linkedin;
+  if (!liPub || typeof liPub !== "object" || Array.isArray(liPub)) {
+    return undefined;
+  }
+  const permalink = (liPub as Record<string, unknown>).permalink;
+  return typeof permalink === "string" ? permalink : undefined;
+}
+
 function formattedToPlatforms(
   formatted: Record<string, unknown> | null | undefined,
 ): PostPlatform[] {
@@ -10,8 +25,9 @@ function formattedToPlatforms(
   const out: PostPlatform[] = [];
   const li = formatted.linkedin;
   const tw = formatted.twitter;
+  const liUrl = linkedinPublishedUrlFromFormatted(formatted);
   if (typeof li === "string" && li.length > 0) {
-    out.push({ name: "linkedin", content: li });
+    out.push({ name: "linkedin", content: li, publishedUrl: liUrl });
   }
   if (typeof tw === "string" && tw.length > 0) {
     out.push({ name: "twitter", content: tw });

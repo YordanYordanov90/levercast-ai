@@ -34,3 +34,12 @@ export const patchPostSchema = createPostSchema.partial();
 export const postListQuerySchema = z.object({
   status: postStatusSchema.optional(),
 });
+
+/** Body for POST /api/posts/[id]/publish — persists post + LinkedIn UGC when requested. */
+export const publishPostBodySchema = z.object({
+  title: z.string().max(500).optional().nullable(),
+  rawContent: z.string().min(1).max(100_000),
+  formattedContent: formattedContentSchema,
+  imageUrl: imageUrlSchema.optional().nullable(),
+  publishTo: z.array(z.enum(["linkedin", "twitter"])).min(1),
+});

@@ -1,21 +1,37 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { cn, initialsFromDisplayName } from '@/lib/utils'
+import Image from 'next/image'
 
 interface LinkedInPreviewProps {
   content: string
   onChange?: (content: string) => void
   editable?: boolean
   imageUrl?: string
+  /** Shown as author name (e.g. LinkedIn display name or app profile). */
+  authorName: string
+  /** Second line under name; omit to hide. */
+  authorHeadline?: string
+  /** Optional profile photo for the preview avatar. */
+  authorAvatarUrl?: string
 }
 
 const LINKEDIN_MAX_CHARS = 3000
 
-export function LinkedInPreview({ content, onChange, editable, imageUrl }: LinkedInPreviewProps) {
+export function LinkedInPreview({
+  content,
+  onChange,
+  editable,
+  imageUrl,
+  authorName,
+  authorHeadline,
+  authorAvatarUrl,
+}: LinkedInPreviewProps) {
   const charCount = content.length
   const percentage = (charCount / LINKEDIN_MAX_CHARS) * 100
   const isOverLimit = charCount > LINKEDIN_MAX_CHARS
-  const isNearLimit = percentage >= 80 &&percentage < 100
+  const isNearLimit = percentage >= 80 && percentage < 100
+  const initials = initialsFromDisplayName(authorName)
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -33,14 +49,25 @@ export function LinkedInPreview({ content, onChange, editable, imageUrl }: Linke
       </div>
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <div className="size-10 rounded-full bg-sidebar-primary flex items-center justify-center text-white font-medium">
-            JD
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-sm">John Doe</p>
-            <p className="text-xs text-muted-foreground">
-              Founder at Levercast • 1st
-            </p>
+          {authorAvatarUrl ? (
+            <Image
+              src={authorAvatarUrl}
+              alt=""
+              width={40}
+              height={40}
+              className="size-10 rounded-full object-cover shrink-0"
+              unoptimized
+            />
+          ) : (
+            <div className="size-10 rounded-full bg-sidebar-primary flex items-center justify-center text-white font-medium shrink-0 text-sm">
+              {initials}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">{authorName}</p>
+            {authorHeadline ? (
+              <p className="text-xs text-muted-foreground line-clamp-2">{authorHeadline}</p>
+            ) : null}
           </div>
         </div>
         {editable ? (
@@ -57,11 +84,14 @@ export function LinkedInPreview({ content, onChange, editable, imageUrl }: Linke
           <p className="mt-3 text-sm whitespace-pre-wrap">{content}</p>
         )}
         {imageUrl && (
-          <div className="mt-3">
-            <img
+          <div className="mt-3 relative h-[300px] w-full overflow-hidden rounded-md">
+            <Image
               src={imageUrl}
               alt="Post attachment"
-              className="w-full max-h-[300px] object-cover rounded-md"
+              fill
+              sizes="(min-width: 768px) 600px, 100vw"
+              className="object-cover"
+              unoptimized
             />
           </div>
         )}
@@ -72,7 +102,7 @@ export function LinkedInPreview({ content, onChange, editable, imageUrl }: Linke
         </div>
         {isOverLimit && (
           <p className="mt-2 text-xs text-destructive">
-            Content exceeds LinkedIn's {LINKEDIN_MAX_CHARS} character limit
+            Content exceeds LinkedIn&apos;s {LINKEDIN_MAX_CHARS} character limit
           </p>
         )}
       </div>

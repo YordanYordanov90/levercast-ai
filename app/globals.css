@@ -82,7 +82,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), 'Inter', 'Geist', sans-serif;
+  --font-sans: var(--font-dm-sans), 'DM Sans', 'Geist', sans-serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --font-display: 'Satoshi', 'Inter', sans-serif;
   --color-surface: var(--surface);
@@ -143,6 +143,24 @@
     opacity: 0.03;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   }
+}
+
+/* Clerk hardening: prevent global styles from degrading contrast */
+[data-clerk-component] *,
+.cl-component *,
+.cl-root-box *,
+.cl-card *,
+[class*="cl-"] {
+  -webkit-text-fill-color: currentColor !important;
+  background-clip: padding-box !important;
+}
+
+.cl-lastAuthenticationStrategyBadge {
+  color: #f5f5f5 !important;
+  -webkit-text-fill-color: #f5f5f5 !important;
+  background-color: #2a2a2a !important;
+  border: 1px solid #383838 !important;
+  background-clip: padding-box !important;
 }
 
 @layer utilities {
