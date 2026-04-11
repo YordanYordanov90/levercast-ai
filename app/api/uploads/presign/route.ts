@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDbUserOrNull } from "@/lib/auth/api-user";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { createPresignedImagePut } from "@/lib/r2/presign-put";
 import {
   presignPostBodySchema,
@@ -13,6 +14,16 @@ function jsonError(message: string, status: number) {
 export async function POST(req: Request) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const rl = await checkRateLimit("uploadPresign", user.id, {
+    route: "/api/uploads/presign",
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
 
   let body: unknown;
   try {
@@ -35,12 +46,12 @@ export async function POST(req: Request) {
       contentType: parsed.data.contentType,
       fileSize: parsed.data.fileSize,
     });
-    return NextResponse.json({ data: result });
+    return NextResponse.json({ data: result }, { headers: rl.headers });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Presign failed";
-    if (msg === "R2 is not configured") {
+    console.error("[uploads/presign]", e);
+    if (e instanceof Error && e.message === "R2 is not configured") {
       return jsonError("Image upload is not configured", 503);
     }
-    return jsonError(msg, 500);
+    return jsonError("Upload failed", 500);
   }
 }

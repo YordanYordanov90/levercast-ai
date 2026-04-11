@@ -8,6 +8,7 @@ import { posts } from "@/lib/db/schema";
 import { LinkedInAuthError, getLinkedInAccessTokenForUser } from "@/lib/linkedin/access-token";
 import { publishMemberFeedShare } from "@/lib/linkedin/ugc-post";
 import { rowToPost } from "@/lib/mappers/post-mapper";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { TwitterAuthError, getTwitterAccessTokenForUser } from "@/lib/twitter/access-token";
 import { postTweet } from "@/lib/twitter/tweet";
 import { publishPostBodySchema } from "@/lib/validations/post";
@@ -47,6 +48,16 @@ export async function POST(
 ) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const rl = await checkRateLimit("publish", user.id, {
+    route: "/api/posts/[id]/publish",
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
 
   const { id } = await ctx.params;
   const idParsed = idParamSchema.safeParse(id);
@@ -113,7 +124,7 @@ export async function POST(
       }
       publishResults.linkedin = {
         ok: false,
-        error: e instanceof Error ? e.message : "LinkedIn publish failed",
+        error: "LinkedIn publish failed",
       };
     }
   }
@@ -137,7 +148,7 @@ export async function POST(
       }
       publishResults.twitter = {
         ok: false,
-        error: e instanceof Error ? e.message : "Twitter / X publish failed",
+        error: "Twitter / X publish failed",
       };
     }
   }
@@ -166,5 +177,8 @@ export async function POST(
     .returning();
 
   if (!updated) return jsonError("Not found", 404);
-  return NextResponse.json({ data: rowToPost(updated), publishResults });
+  return NextResponse.json(
+    { data: rowToPost(updated), publishResults },
+    { headers: rl.headers },
+  );
 }

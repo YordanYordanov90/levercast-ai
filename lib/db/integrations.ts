@@ -66,6 +66,10 @@ export async function upsertIntegration(
   return row;
 }
 
+/**
+ * Disconnects a social account: clears tokens and marks disconnected.
+ * The `social_integrations` row is kept (audit / re-auth); it is not deleted.
+ */
 export async function deleteIntegration(userId: string, platform: SocialPlatformKey): Promise<void> {
   await upsertIntegration(userId, platform, {
     status: "disconnected",

@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { TemplateCard } from '@/components/templates/TemplateCard'
-import { fetchJson } from '@/lib/api/fetch-json'
+import { ApiError, fetchJson } from '@/lib/api/fetch-json'
 import type { Template, TemplatePlatform } from '@/types/template'
 import { Sparkles } from 'lucide-react'
 
@@ -175,7 +175,14 @@ export function TemplatesView({ initialTemplates }: TemplatesViewProps) {
       setShowCreate(true)
       toast.success('Review the draft and click Create to save')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'AI generation failed')
+      if (e instanceof ApiError && e.status === 403) {
+        toast.error('Monthly AI generation limit reached', {
+          description: 'Upgrade to Pro for unlimited generations.',
+          action: { label: 'Upgrade', onClick: () => router.push('/billing') },
+        })
+      } else {
+        toast.error(e instanceof Error ? e.message : 'AI generation failed')
+      }
     } finally {
       setAiGenerating(false)
     }

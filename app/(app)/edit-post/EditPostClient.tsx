@@ -8,7 +8,7 @@ import { TwitterPreview } from '@/components/previews/TwitterPreview'
 import { PlatformToggle, PlatformId } from '@/components/platform/PlatformToggle'
 import { SaveStatusIndicator, SaveStatus } from '@/components/editor/SaveStatusIndicator'
 import { ImageUpload } from '@/components/editor/ImageUpload'
-import { fetchJson } from '@/lib/api/fetch-json'
+import { fetchJson, ApiError } from '@/lib/api/fetch-json'
 import { uploadPostImageViaR2 } from '@/lib/api/upload-post-image'
 import type { Post } from '@/types/post'
 import type { Template } from '@/types/template'
@@ -208,7 +208,9 @@ export function EditPostClient({
     let cancelled = false
     void (async () => {
       try {
-        const list = await fetchJson<Template[]>('/api/templates')
+        const list = await fetchJson<Template[]>(
+          '/api/templates?limit=100&offset=0',
+        )
         if (cancelled) return
         setFormattingTemplates(list)
       } catch {
@@ -553,7 +555,14 @@ export function EditPostClient({
       if (data.twitter !== undefined) setTwitterContent(data.twitter)
       toast.success('Generated platform posts')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Generation failed')
+      if (e instanceof ApiError && e.status === 403) {
+        toast.error('Monthly AI generation limit reached', {
+          description: 'Upgrade to Pro for unlimited generations.',
+          action: { label: 'Upgrade', onClick: () => router.push('/billing') },
+        })
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Generation failed')
+      }
     } finally {
       setAiGenerating(false)
     }

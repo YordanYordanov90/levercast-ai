@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { desc, eq } from 'drizzle-orm'
+import { count, desc, eq, and } from 'drizzle-orm'
 import { CheckCircle, Clock, FileText } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { db } from '@/lib/db'
 import { posts } from '@/lib/db/schema'
 import { rowToPost } from '@/lib/mappers/post-mapper'
 import type { PostStatus } from '@/types/post'
+
+const RECENT_POST_LIMIT = 6
 
 const STATUS_STYLES: Record<
   PostStatus,
@@ -59,18 +61,32 @@ const STAT_ACCENTS = {
 
 export default async function DashboardPage() {
   const user = await ensureUser()
-  const rows = await db
+
+  const [draftCount] = await db
+    .select({ count: count() })
+    .from(posts)
+    .where(and(eq(posts.userId, user.id), eq(posts.status, 'draft')))
+
+  const [pendingCount] = await db
+    .select({ count: count() })
+    .from(posts)
+    .where(and(eq(posts.userId, user.id), eq(posts.status, 'pending')))
+
+  const [publishedCount] = await db
+    .select({ count: count() })
+    .from(posts)
+    .where(and(eq(posts.userId, user.id), eq(posts.status, 'published')))
+
+  const totalPosts = draftCount.count + pendingCount.count + publishedCount.count
+
+  const recentRows = await db
     .select()
     .from(posts)
     .where(eq(posts.userId, user.id))
     .orderBy(desc(posts.updatedAt))
+    .limit(RECENT_POST_LIMIT)
 
-  const draftCount = rows.filter((p) => p.status === 'draft').length
-  const pendingCount = rows.filter((p) => p.status === 'pending').length
-  const publishedCount = rows.filter((p) => p.status === 'published').length
-
-  const totalPosts = rows.length
-  const recentPosts = rows.slice(0, 6).map(rowToPost)
+  const recentPosts = recentRows.map(rowToPost)
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -82,10 +98,10 @@ export default async function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-3 mb-10">
         {(
           [
-            { key: 'draft', label: 'Drafts', value: draftCount },
-            { key: 'pending', label: 'Pending Review', value: pendingCount },
-            { key: 'published', label: 'Published', value: publishedCount },
-          ] as const
+            { key: 'draft' as const, label: 'Drafts', value: draftCount.count },
+            { key: 'pending' as const, label: 'Pending Review', value: pendingCount.count },
+            { key: 'published' as const, label: 'Published', value: publishedCount.count },
+          ]
         ).map((stat) => {
           const accent = STAT_ACCENTS[stat.key]
           const Icon = accent.icon

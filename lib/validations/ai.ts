@@ -6,8 +6,8 @@ export const generatePostRequestSchema = z.object({
   rawContent: z.string().min(1).max(100_000),
   title: z.string().max(500).optional(),
   platforms: z.array(aiPlatformSchema).min(1).max(2).default(["linkedin", "twitter"]),
-  /** When set, overrides the default formatting instructions (template prompt body). */
-  templatePrompt: z.string().max(50_000).optional(),
+  /** Optional template body; capped to limit prompt-injection surface. */
+  templatePrompt: z.string().max(3000).optional(),
 });
 
 /**

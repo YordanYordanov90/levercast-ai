@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+import { MAX_LIST_LIMIT } from "@/lib/validations/post";
+
+export const templateListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(MAX_LIST_LIMIT).optional(),
+  offset: z.coerce.number().int().min(0).max(500_000).optional(),
+});
+
+export type TemplateListQuery = z.infer<typeof templateListQuerySchema>;
+
 export const templateMetadataSchema = z
   .object({
     description: z.string().max(2000).optional(),

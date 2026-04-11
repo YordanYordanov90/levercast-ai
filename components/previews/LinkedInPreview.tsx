@@ -56,7 +56,6 @@ export function LinkedInPreview({
               width={40}
               height={40}
               className="size-10 rounded-full object-cover shrink-0"
-              unoptimized
             />
           ) : (
             <div className="size-10 rounded-full bg-sidebar-primary flex items-center justify-center text-white font-medium shrink-0 text-sm">
@@ -91,7 +90,6 @@ export function LinkedInPreview({
               fill
               sizes="(min-width: 768px) 600px, 100vw"
               className="object-cover"
-              unoptimized
             />
           </div>
         )}

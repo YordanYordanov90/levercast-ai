@@ -9,7 +9,7 @@ const plans = [
     period: "forever",
     description: "Perfect for trying Levercast and casual creators.",
     features: [
-      "5 AI-formatted posts per month",
+      "10 AI-formatted posts per month",
       "LinkedIn & Twitter previews",
       "2 templates",
       "Manual publish",
@@ -34,22 +34,6 @@ const plans = [
     cta: "Start Pro free for 14 days",
     href: "/sign-up?plan=pro",
     highlight: true,
-  },
-  {
-    name: "Team",
-    price: "$49",
-    period: "per month",
-    description: "For agencies and teams managing multiple brands.",
-    features: [
-      "Everything in Pro",
-      "Up to 5 team members",
-      "Brand voice customization",
-      "Advanced analytics",
-      "Dedicated onboarding",
-    ],
-    cta: "Contact us",
-    href: "/sign-up?plan=team",
-    highlight: false,
   },
 ]
 
@@ -79,7 +63,7 @@ export function Pricing() {
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start max-w-3xl mx-auto">
           {plans.map((plan, index) => (
             <ScrollReveal key={plan.name} delay={index * 100}>
               <div

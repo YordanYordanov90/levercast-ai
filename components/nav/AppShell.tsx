@@ -16,6 +16,7 @@ function titleFromPathname(pathname: string): string {
   if (pathname.startsWith('/posts')) return 'Recent Posts'
   if (pathname.startsWith('/templates')) return 'Templates'
   if (pathname.startsWith('/settings')) return 'Settings'
+  if (pathname.startsWith('/billing')) return 'Billing'
   return 'Levercast'
 }
 

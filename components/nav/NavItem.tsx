@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Edit, Home, List, Settings, LayoutTemplate } from 'lucide-react'
+import { Edit, Home, List, Settings, LayoutTemplate, CreditCard } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, accent: 'amber' },
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/posts', label: 'Recent Posts', icon: List, accent: 'emerald' },
   { href: '/templates', label: 'Templates', icon: LayoutTemplate, accent: 'violet' },
   { href: '/settings', label: 'Settings', icon: Settings, accent: 'zinc' },
+  { href: '/billing', label: 'Billing', icon: CreditCard, accent: 'rose' },
 ]
 
 const iconAccent: Record<
@@ -46,6 +47,12 @@ const iconAccent: Record<
     bg: 'bg-muted/60',
     activeIcon: 'text-foreground',
     activeBg: 'bg-muted',
+  },
+  rose: {
+    icon: 'text-rose-400',
+    bg: 'bg-rose-500/10',
+    activeIcon: 'text-rose-300',
+    activeBg: 'bg-rose-500/15',
   },
 }
 

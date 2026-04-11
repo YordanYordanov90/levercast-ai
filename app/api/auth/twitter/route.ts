@@ -13,9 +13,21 @@ import {
   generateTwitterOAuthState,
   hasTwitterOAuthConfig,
 } from "@/lib/oauth/twitter";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getRequestClientIp } from "@/lib/request-client-ip";
 
 export async function GET(request: Request) {
   const user = await getDbUserOrNull();
+  const rlKey = user ? user.id : `ip:${getRequestClientIp(request)}`;
+  const rl = await checkRateLimit("oauthStart", rlKey, {
+    route: "/api/auth/twitter",
+  });
+  if (!rl.ok) {
+    const path = user ? "/settings" : "/sign-in";
+    const url = new URL(path, request.url);
+    url.searchParams.set("error", user ? "twitter_rate_limit" : "oauth_rate_limit");
+    return NextResponse.redirect(url, { headers: rl.headers });
+  }
   if (!user) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }

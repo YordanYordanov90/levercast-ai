@@ -6,6 +6,10 @@ import {
 } from "@/lib/ai/prompts";
 import { getOpenAiModel } from "@/lib/ai/openai-model";
 import { getDbUserOrNull } from "@/lib/auth/api-user";
+import {
+  canGenerateAiPost,
+  trackAiUsage,
+} from "@/lib/billing/subscription";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   generateTemplateOutputSchema,
@@ -20,11 +24,28 @@ export async function POST(req: Request) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
 
-  const rl = await checkRateLimit("ai", user.id);
+  const rl = await checkRateLimit("ai", user.id, {
+    route: "/api/ai/generate-template",
+  });
   if (!rl.ok) {
     return NextResponse.json(
-      { error: "Too many requests. Please slow down." },
-      { status: 429, headers: rl.headers },
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
+
+  const permission = await canGenerateAiPost(user.clerkId);
+  if (!permission.allowed) {
+    return NextResponse.json(
+      {
+        error: "AI generation limit reached",
+        tier: permission.tier,
+        usageCount: permission.usageCount,
+        limit: permission.limit,
+        remaining: permission.remaining,
+        upgradeUrl: "/billing",
+      },
+      { status: 403, headers: rl.headers },
     );
   }
 
@@ -62,6 +83,8 @@ export async function POST(req: Request) {
       prompt: `User request:\n${d.description.trim()}`,
     });
 
+    await trackAiUsage(user.id, "template_generation");
+
     return NextResponse.json(
       {
         data: {
@@ -74,8 +97,7 @@ export async function POST(req: Request) {
       { headers: rl.headers },
     );
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Generation failed";
     console.error("[ai/generate-template]", e);
-    return jsonError(msg, 500);
+    return jsonError("Generation failed", 500);
   }
 }

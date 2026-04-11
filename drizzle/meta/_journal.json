@@ -22,6 +22,20 @@
       "when": 1775670312134,
       "tag": "0002_friendly_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775859455841,
+      "tag": "0003_busy_luckman",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775902122900,
+      "tag": "0004_brief_arclight",
+      "breakpoints": true
     }
   ]
 }

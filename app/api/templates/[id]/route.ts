@@ -6,6 +6,7 @@ import { getDbUserOrNull } from "@/lib/auth/api-user";
 import { db } from "@/lib/db";
 import { templates } from "@/lib/db/schema";
 import { rowToTemplate } from "@/lib/mappers/template-mapper";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { patchTemplateSchema } from "@/lib/validations/template";
 
 const idParamSchema = z.string().uuid();
@@ -45,6 +46,16 @@ export async function PATCH(
 ) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const rl = await checkRateLimit("templatesWrite", user.id, {
+    route: "/api/templates/[id]",
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
 
   const { id } = await ctx.params;
   const idParsed = idParamSchema.safeParse(id);
@@ -88,7 +99,7 @@ export async function PATCH(
     .returning();
 
   if (!row) return jsonError("Not found", 404);
-  return NextResponse.json({ data: rowToTemplate(row) });
+  return NextResponse.json({ data: rowToTemplate(row) }, { headers: rl.headers });
 }
 
 export async function DELETE(
@@ -97,6 +108,16 @@ export async function DELETE(
 ) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const rl = await checkRateLimit("templatesWrite", user.id, {
+    route: "/api/templates/[id]",
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
 
   const { id } = await ctx.params;
   const idParsed = idParamSchema.safeParse(id);
@@ -110,5 +131,5 @@ export async function DELETE(
     .returning({ id: templates.id });
 
   if (deleted.length === 0) return jsonError("Not found", 404);
-  return NextResponse.json({ data: { id: idParsed.data } });
+  return NextResponse.json({ data: { id: idParsed.data } }, { headers: rl.headers });
 }

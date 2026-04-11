@@ -22,6 +22,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   linkedin_invalid_callback: 'Invalid response from LinkedIn.',
   linkedin_missing_params: 'Missing parameters from LinkedIn.',
   linkedin_unauthorized: 'Please sign in and try again.',
+  linkedin_rate_limit: 'Too many connect attempts. Wait a few minutes and try again.',
 }
 
 export interface LinkedInConnectProps {

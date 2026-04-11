@@ -22,6 +22,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   twitter_invalid_callback: 'Invalid response from Twitter / X.',
   twitter_missing_params: 'Missing parameters from Twitter / X.',
   twitter_unauthorized: 'Please sign in and try again.',
+  twitter_rate_limit: 'Too many connect attempts. Wait a few minutes and try again.',
 }
 
 export interface TwitterConnectProps {

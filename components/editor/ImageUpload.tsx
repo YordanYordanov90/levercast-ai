@@ -88,13 +88,16 @@ export function ImageUpload({ images, onChange, maxImages = 3 }: ImageUploadProp
     <div className="space-y-3">
       {/* Upload Zone */}
       <div
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick() } }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
           'relative cursor-pointer rounded-lg border-2 border-dashed p-6 transition-colors',
-          'hover:border-primary/50 hover:bg-accent/50',
+          'hover:border-primary/50 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           isDragging ? 'border-primary bg-primary/5' : 'border-input',
           images.length >= maxImages && 'opacity-50 cursor-not-allowed pointer-events-none'
         )}
@@ -139,8 +142,9 @@ export function ImageUpload({ images, onChange, maxImages = 3 }: ImageUploadProp
                 />
               </div>
               <button
+                type="button"
                 onClick={() => handleRemove(image.id)}
-                className="absolute -top-2 -right-2 size-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-2 -right-2 size-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity"
                 aria-label={`Remove ${image.name}`}
               >
                 <X className="size-3" />

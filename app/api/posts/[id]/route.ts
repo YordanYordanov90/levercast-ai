@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { posts } from "@/lib/db/schema";
 import { deleteR2ObjectByPublicUrlIfOwned } from "@/lib/r2/delete-object";
 import { rowToPost } from "@/lib/mappers/post-mapper";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { patchPostSchema } from "@/lib/validations/post";
 
 const idParamSchema = z.string().uuid();
@@ -42,6 +43,16 @@ export async function PATCH(
 ) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const rl = await checkRateLimit("postsWrite", user.id, {
+    route: "/api/posts/[id]",
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
 
   const { id } = await ctx.params;
   const idParsed = idParamSchema.safeParse(id);
@@ -101,7 +112,7 @@ export async function PATCH(
     await deleteR2ObjectByPublicUrlIfOwned(previousImageUrl, user.id);
   }
 
-  return NextResponse.json({ data: rowToPost(row) });
+  return NextResponse.json({ data: rowToPost(row) }, { headers: rl.headers });
 }
 
 export async function DELETE(
@@ -110,6 +121,16 @@ export async function DELETE(
 ) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
+
+  const rl = await checkRateLimit("postsWrite", user.id, {
+    route: "/api/posts/[id]",
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
 
   const { id } = await ctx.params;
   const idParsed = idParamSchema.safeParse(id);
@@ -124,5 +145,5 @@ export async function DELETE(
 
   await deleteR2ObjectByPublicUrlIfOwned(deleted[0].imageUrl, user.id);
 
-  return NextResponse.json({ data: { id: idParsed.data } });
+  return NextResponse.json({ data: { id: idParsed.data } }, { headers: rl.headers });
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { ErrorDisplay } from '@/components/error/ErrorDisplay'
 
 export default function PostsError({
@@ -9,10 +10,14 @@ export default function PostsError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    console.error('[PostsError]', error)
+  }, [error])
+
   return (
     <ErrorDisplay
       title="Failed to load posts"
-      message={error.message || 'Could not load your posts. Please try again.'}
+      message="Could not load your posts. Please try again."
       onRetry={reset}
       actionLabel="Retry"
     />

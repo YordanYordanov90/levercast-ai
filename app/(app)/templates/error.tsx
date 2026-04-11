@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { ErrorDisplay } from '@/components/error/ErrorDisplay'
 
 export default function TemplatesError({
@@ -9,10 +10,14 @@ export default function TemplatesError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    console.error('[TemplatesError]', error)
+  }, [error])
+
   return (
     <ErrorDisplay
       title="Failed to load templates"
-      message={error.message || 'Could not load your templates. Please try again.'}
+      message="Could not load your templates. Please try again."
       onRetry={reset}
       actionLabel="Retry"
     />

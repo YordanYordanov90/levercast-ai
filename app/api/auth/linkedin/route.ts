@@ -4,9 +4,21 @@ import { NextResponse } from "next/server";
 import { getDbUserOrNull } from "@/lib/auth/api-user";
 import { LINKEDIN_OAUTH_STATE_COOKIE, LINKEDIN_OAUTH_STATE_MAX_AGE_SEC } from "@/lib/oauth/constants";
 import { buildLinkedInAuthUrl } from "@/lib/oauth/linkedin";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getRequestClientIp } from "@/lib/request-client-ip";
 
 export async function GET(request: Request) {
   const user = await getDbUserOrNull();
+  const rlKey = user ? user.id : `ip:${getRequestClientIp(request)}`;
+  const rl = await checkRateLimit("oauthStart", rlKey, {
+    route: "/api/auth/linkedin",
+  });
+  if (!rl.ok) {
+    const path = user ? "/settings" : "/sign-in";
+    const url = new URL(path, request.url);
+    url.searchParams.set("error", user ? "linkedin_rate_limit" : "oauth_rate_limit");
+    return NextResponse.redirect(url, { headers: rl.headers });
+  }
   if (!user) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { ErrorDisplay } from '@/components/error/ErrorDisplay'
 
 export default function RootError({
@@ -9,5 +10,9 @@ export default function RootError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  return <ErrorDisplay message={error.message || 'An unexpected error occurred.'} onRetry={reset} />
+  useEffect(() => {
+    console.error('[RootError]', error)
+  }, [error])
+
+  return <ErrorDisplay message="An unexpected error occurred." onRetry={reset} />
 }

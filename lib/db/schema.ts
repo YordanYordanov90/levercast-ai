@@ -1,9 +1,17 @@
-import { pgEnum, pgTable, text, timestamp, uuid, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, timestamp, uuid, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 export const postStatusEnum = pgEnum("post_status", ["draft", "pending", "published"]);
 
 export const socialPlatformEnum = pgEnum("social_platform", ["linkedin", "twitter"]);
 export const integrationStatusEnum = pgEnum("integration_status", ["disconnected", "connected", "error"]);
+
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "canceled",
+  "past_due",
+  "unpaid",
+  "trialing",
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -14,12 +22,31 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   imageUrl: text("image_url"),
 
+  // Billing fields
+  subscriptionStatus: subscriptionStatusEnum("subscription_status"),
+  subscriptionPlanId: text("subscription_plan_id"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
 });
+
+// AI usage tracking for Free tier limits
+export const aiUsageTypeEnum = pgEnum("ai_usage_type", ["post_generation", "template_generation"]);
+
+export const aiUsage = pgTable("ai_usage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: aiUsageTypeEnum("type").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("ai_usage_user_id_idx").on(table.userId),
+  index("ai_usage_user_created_idx").on(table.userId, table.createdAt),
+]);
 
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -40,7 +67,9 @@ export const posts = pgTable("posts", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("posts_user_id_idx").on(table.userId),
+]);
 
 export const templates = pgTable("templates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -55,7 +84,9 @@ export const templates = pgTable("templates", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("templates_user_id_idx").on(table.userId),
+]);
 
 export const socialIntegrations = pgTable(
   "social_integrations",

@@ -1,13 +1,52 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-type LimiterKind = "ai" | "api";
+const RATE_LIMIT_POLICIES = {
+  ai: {
+    limit: 5,
+    window: "60 s",
+    prefix: "ratelimit:ai",
+  },
+  postsWrite: {
+    limit: 30,
+    window: "60 s",
+    prefix: "ratelimit:api:posts-write",
+  },
+  templatesWrite: {
+    limit: 30,
+    window: "60 s",
+    prefix: "ratelimit:api:templates-write",
+  },
+  publish: {
+    limit: 10,
+    window: "60 s",
+    prefix: "ratelimit:api:publish",
+  },
+  uploadPresign: {
+    limit: 10,
+    window: "60 s",
+    prefix: "ratelimit:api:upload-presign",
+  },
+  oauthStart: {
+    limit: 10,
+    window: "10 m",
+    prefix: "ratelimit:auth:oauth-start",
+  },
+} as const;
+
+type LimiterKind = keyof typeof RATE_LIMIT_POLICIES;
+
+interface CheckRateLimitOptions {
+  route?: string;
+}
 
 export interface RateLimitResult {
   ok: boolean;
   retryAfterSec?: number;
   headers: Record<string, string>;
   skipped: boolean;
+  errorMessage?: string;
+  status?: 429 | 503;
 }
 
 function getRedisOrNull(): Redis | null {
@@ -32,47 +71,76 @@ function buildHeaders(limit: number, remaining: number, resetMs: number | null):
   return headers;
 }
 
+function createLimiters(redis: Redis): Record<LimiterKind, Ratelimit> {
+  const limiters = {} as Record<LimiterKind, Ratelimit>;
+
+  for (const [kind, policy] of Object.entries(RATE_LIMIT_POLICIES) as [
+    LimiterKind,
+    (typeof RATE_LIMIT_POLICIES)[LimiterKind],
+  ][]) {
+    limiters[kind] = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(policy.limit, policy.window),
+      analytics: true,
+      prefix: policy.prefix,
+      ephemeralCache: new Map(),
+    });
+  }
+
+  return limiters;
+}
+
 function getLimiters() {
   const g = globalThis as unknown as {
     __levercastRatelimit?: {
       redis: Redis | null;
-      ai: Ratelimit;
-      api: Ratelimit;
+      limiters: Record<LimiterKind, Ratelimit> | null;
+      warnedMissingConfig: boolean;
     };
   };
 
   if (g.__levercastRatelimit) return g.__levercastRatelimit;
 
   const redis = getRedisOrNull();
-  const safeRedis = redis ?? new Redis({ url: "http://127.0.0.1", token: "missing" });
-
-  const ai = new Ratelimit({
-    redis: safeRedis,
-    limiter: Ratelimit.slidingWindow(5, "60 s"),
-    analytics: true,
-    prefix: "ratelimit:ai",
-    ephemeralCache: new Map(),
-  });
-
-  const api = new Ratelimit({
-    redis: safeRedis,
-    limiter: Ratelimit.slidingWindow(60, "60 s"),
-    analytics: true,
-    prefix: "ratelimit:api",
-    ephemeralCache: new Map(),
-  });
-
-  g.__levercastRatelimit = { redis, ai, api };
+  g.__levercastRatelimit = {
+    redis,
+    limiters: redis ? createLimiters(redis) : null,
+    warnedMissingConfig: false,
+  };
   return g.__levercastRatelimit;
 }
 
-export async function checkRateLimit(kind: LimiterKind, identifier: string): Promise<RateLimitResult> {
-  const { redis, ai, api } = getLimiters();
-  if (!redis) {
-    return { ok: true, headers: {}, skipped: true };
+export async function checkRateLimit(
+  kind: LimiterKind,
+  identifier: string,
+  options?: CheckRateLimitOptions,
+): Promise<RateLimitResult> {
+  const state = getLimiters();
+  if (!state.redis || !state.limiters) {
+    if (process.env.NODE_ENV !== "production") {
+      if (!state.warnedMissingConfig) {
+        console.warn(
+          "[rate-limit] Upstash Redis is not configured. Skipping rate limiting outside production.",
+        );
+        state.warnedMissingConfig = true;
+      }
+      return { ok: true, headers: {}, skipped: true };
+    }
+
+    console.error("[rate-limit] Missing Upstash configuration for protected route", {
+      kind,
+      route: options?.route ?? "unknown",
+    });
+    return {
+      ok: false,
+      headers: {},
+      skipped: false,
+      errorMessage: "Rate limiting is not configured",
+      status: 503,
+    };
   }
 
-  const limiter = kind === "ai" ? ai : api;
+  const limiter = state.limiters[kind];
   const result = await limiter.limit(identifier);
 
   const resetMs = getResetMs((result as unknown as { reset?: unknown }).reset);
@@ -83,10 +151,18 @@ export async function checkRateLimit(kind: LimiterKind, identifier: string): Pro
   const retryAfterSec =
     resetMs === null ? 60 : Math.max(1, Math.ceil((resetMs - Date.now()) / 1000));
 
+  console.warn("[rate-limit] Blocked request", {
+    kind,
+    route: options?.route ?? "unknown",
+    retryAfterSec,
+  });
+
   return {
     ok: false,
     retryAfterSec,
     headers: { ...headers, "Retry-After": String(retryAfterSec) },
     skipped: false,
+    errorMessage: "Too many requests. Please slow down.",
+    status: 429,
   };
 }

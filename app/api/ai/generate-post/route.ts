@@ -8,6 +8,10 @@ import { getOpenAiModel } from "@/lib/ai/openai-model";
 import { getDbUserOrNull } from "@/lib/auth/api-user";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
+  canGenerateAiPost,
+  trackAiUsage,
+} from "@/lib/billing/subscription";
+import {
   generatePostOutputSchema,
   generatePostRequestSchema,
 } from "@/lib/validations/ai";
@@ -20,11 +24,29 @@ export async function POST(req: Request) {
   const user = await getDbUserOrNull();
   if (!user) return jsonError("Unauthorized", 401);
 
-  const rl = await checkRateLimit("ai", user.id);
+  const rl = await checkRateLimit("ai", user.id, {
+    route: "/api/ai/generate-post",
+  });
   if (!rl.ok) {
     return NextResponse.json(
-      { error: "Too many requests. Please slow down." },
-      { status: 429, headers: rl.headers },
+      { error: rl.errorMessage ?? "Too many requests. Please slow down." },
+      { status: rl.status ?? 429, headers: rl.headers },
+    );
+  }
+
+  // Check subscription tier and usage limits
+  const permission = await canGenerateAiPost(user.clerkId);
+  if (!permission.allowed) {
+    return NextResponse.json(
+      {
+        error: "AI generation limit reached",
+        tier: permission.tier,
+        usageCount: permission.usageCount,
+        limit: permission.limit,
+        remaining: permission.remaining,
+        upgradeUrl: "/billing",
+      },
+      { status: 403, headers: rl.headers },
     );
   }
 
@@ -82,10 +104,12 @@ export async function POST(req: Request) {
       return jsonError("Model returned no content for the requested platforms", 502);
     }
 
+    // Track usage for Free tier counting
+    await trackAiUsage(user.id, "post_generation");
+
     return NextResponse.json({ data }, { headers: rl.headers });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Generation failed";
     console.error("[ai/generate-post]", e);
-    return jsonError(msg, 500);
+    return jsonError("Generation failed", 500);
   }
 }

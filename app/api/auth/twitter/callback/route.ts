@@ -76,11 +76,8 @@ export async function GET(request: Request) {
     expiresIn = tokens.expires_in;
     refreshToken = tokens.refresh_token;
   } catch (e) {
-    const detail = e instanceof Error ? encodeURIComponent(e.message.slice(0, 200)) : undefined;
-    const res = redirectSettings(
-      request,
-      detail ? `?error=twitter_token_exchange&detail=${detail}` : "?error=twitter_token_exchange",
-    );
+    console.error("[twitter/callback] token exchange failed", e);
+    const res = redirectSettings(request, "?error=twitter_token_exchange");
     clearOAuthCookies(res);
     return res;
   }
