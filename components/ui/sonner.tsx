@@ -7,9 +7,15 @@ import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon
 const Toaster = ({ ...props }: ToasterProps) => {
   const { resolvedTheme } = useTheme()
 
+  // Type guard: map resolvedTheme to valid Sonner theme values
+  const sonnerTheme: ToasterProps["theme"] =
+    resolvedTheme === "dark" || resolvedTheme === "light" || resolvedTheme === "system"
+      ? resolvedTheme
+      : "system"
+
   return (
     <Sonner
-      theme={resolvedTheme as ToasterProps["theme"]}
+      theme={sonnerTheme}
       className="toaster group"
       icons={{
         success: (

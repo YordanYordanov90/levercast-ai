@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -28,7 +28,7 @@ export function PostsView({ initialPosts }: PostsViewProps) {
       ? posts
       : posts.filter((post) => post.status === statusFilter)
 
-  const handleDelete = async (postId: string) => {
+  const handleDelete = useCallback(async (postId: string) => {
     try {
       await fetchJson<{ id: string }>(`/api/posts/${postId}`, { method: 'DELETE' })
       setPosts((prev) => prev.filter((p) => p.id !== postId))
@@ -37,7 +37,7 @@ export function PostsView({ initialPosts }: PostsViewProps) {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to delete post')
     }
-  }
+  }, [router])
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">

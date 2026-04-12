@@ -27,9 +27,17 @@ export function Navbar() {
       setScrollProgress(Math.min(100, Math.max(0, scrollPercent)))
     }
     
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    
     window.addEventListener("scroll", onScroll, { passive: true })
+    document.addEventListener("keydown", onKeyDown)
     onScroll()
-    return () => window.removeEventListener("scroll", onScroll)
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      document.removeEventListener("keydown", onKeyDown)
+    }
   }, [])
 
   return (
@@ -97,6 +105,8 @@ export function Navbar() {
           className="md:hidden text-muted-foreground hover:text-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -104,7 +114,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border px-6 pb-6 pt-2 flex flex-col gap-4">
+        <div id="mobile-nav" className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border px-6 pb-6 pt-2 flex flex-col gap-4">
           {navLinks.map((link) => (
             <Link
               key={link.label}

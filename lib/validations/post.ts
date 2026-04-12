@@ -21,12 +21,25 @@ export const publishFormattedContentSchema = z
   })
   .strict();
 
+const ALLOWED_IMAGE_HOSTS = new Set([
+  ...(process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim() ? [new URL(process.env.NEXT_PUBLIC_R2_PUBLIC_URL.trim()).host] : []),
+  ...(process.env.R2_PUBLIC_URL?.trim() ? [new URL(process.env.R2_PUBLIC_URL.trim()).host] : []),
+]);
+
 function isAllowedPersistedImageUrl(s: string): boolean {
-  if (s.startsWith("https://")) return true;
-  if (process.env.NODE_ENV !== "production" && s.startsWith("http://localhost")) {
-    return true;
+  try {
+    const url = new URL(s);
+    if (ALLOWED_IMAGE_HOSTS.size > 0) {
+      return url.protocol === 'https:' && ALLOWED_IMAGE_HOSTS.has(url.host);
+    }
+    if (url.protocol === 'https:') return true;
+    if (process.env.NODE_ENV !== 'production' && url.protocol === 'http:' && url.hostname === 'localhost') {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
   }
-  return false;
 }
 
 /** HTTPS public URL only (R2). Data URIs are rejected — use presigned upload, not DB blobs. */

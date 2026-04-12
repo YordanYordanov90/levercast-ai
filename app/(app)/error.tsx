@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation'
 
 import { ErrorDisplay } from '@/components/error/ErrorDisplay'
 
+const AUTH_ERROR_CODES = [
+  401,
+  403,
+]
+
 export default function AppError({
   error,
   reset,
@@ -15,14 +20,11 @@ export default function AppError({
   const router = useRouter()
 
   useEffect(() => {
-    console.error('App error:', error)
+    console.error('[AppError]', error)
   }, [error])
 
-  const isAuthError =
-    error.message?.includes('Unauthorized') ||
-    error.message?.includes('Forbidden') ||
-    error.message?.includes('clerk') ||
-    error.message?.toLowerCase().includes('auth')
+  const statusCode = (error as unknown as { statusCode?: number })?.statusCode
+  const isAuthError = AUTH_ERROR_CODES.includes(statusCode ?? 0) || (error as unknown as { status?: number })?.status === 401
 
   useEffect(() => {
     if (isAuthError) router.push('/sign-in')
@@ -32,7 +34,7 @@ export default function AppError({
 
   return (
     <ErrorDisplay
-      message={error.message || 'An unexpected error occurred.'}
+      message="An unexpected error occurred."
       onRetry={reset}
     />
   )

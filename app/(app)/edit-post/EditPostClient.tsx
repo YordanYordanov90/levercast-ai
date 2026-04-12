@@ -664,7 +664,7 @@ export function EditPostClient({
           </div>
 
               <div className="mt-4">
-            <label className="block text-sm font-medium mb-2">Image (optional)</label>
+            <label htmlFor="image-upload" className="block text-sm font-medium mb-2">Image (optional)</label>
             <ImageUpload images={images} onChange={handleImageChange} maxImages={1} />
           </div>
             </div>
@@ -783,8 +783,6 @@ export function EditPostClient({
           />
         </div>
       </section>
-
-      <section className="hidden" />
     </div>
   )
 }

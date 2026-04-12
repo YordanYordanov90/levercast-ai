@@ -125,7 +125,13 @@ export default async function BillingPage() {
               </div>
 
               {/* Usage bar */}
-              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-2.5 rounded-full bg-muted overflow-hidden"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(usagePercent)}
+              >
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
                     usagePercent >= 100

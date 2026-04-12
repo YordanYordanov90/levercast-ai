@@ -63,7 +63,7 @@ export function Footer() {
 
         <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
-            © 2025 Levercast. All rights reserved.
+            © {new Date().getFullYear()} Levercast. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <Link

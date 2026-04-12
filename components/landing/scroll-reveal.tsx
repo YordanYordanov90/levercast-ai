@@ -11,6 +11,7 @@ interface ScrollRevealProps {
 export function ScrollReveal({ children, className = "", delay = 0 }: ScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [isRevealed, setIsRevealed] = useState(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const element = ref.current
@@ -19,7 +20,7 @@ export function ScrollReveal({ children, className = "", delay = 0 }: ScrollReve
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => {
+          timeoutRef.current = setTimeout(() => {
             setIsRevealed(true)
           }, delay)
           observer.unobserve(element)
@@ -30,7 +31,12 @@ export function ScrollReveal({ children, className = "", delay = 0 }: ScrollReve
 
     observer.observe(element)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [delay])
 
   return (

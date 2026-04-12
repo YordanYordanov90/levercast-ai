@@ -1,6 +1,11 @@
-type TwitterTweetResponse = {
-  data?: { id: string; text?: string };
-};
+import { z } from "zod";
+
+const twitterTweetResponseSchema = z.object({
+  data: z.object({
+    id: z.string(),
+    text: z.string().optional(),
+  }).optional(),
+});
 
 export async function postTweet(arg: { accessToken: string; text: string }) {
   const text = arg.text.trim();
@@ -20,10 +25,13 @@ export async function postTweet(arg: { accessToken: string; text: string }) {
     throw new Error(`Twitter publish failed (${res.status}): ${body || res.statusText}`);
   }
 
-  const json = (await res.json()) as unknown as TwitterTweetResponse;
-  const id = json?.data?.id;
-  if (!id) throw new Error("Twitter publish failed: missing tweet id");
+  const json = await res.json();
+  const parseResult = twitterTweetResponseSchema.safeParse(json);
+  if (!parseResult.success || !parseResult.data.data?.id) {
+    console.error("[twitter] Tweet response validation failed:", parseResult.error?.issues);
+    throw new Error("Twitter publish failed: invalid response");
+  }
 
-  return { id } as const;
+  return { id: parseResult.data.data.id } as const;
 }
 

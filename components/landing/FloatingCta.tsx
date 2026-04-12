@@ -19,11 +19,12 @@ export function FloatingCta({
   const { isSignedIn } = useUser()
   const [visible, setVisible] = useState(false)
   const targetElRef = useRef<HTMLElement | null>(null)
+  const rafIdRef = useRef<number | null>(null)
 
   useEffect(() => {
     targetElRef.current = document.getElementById(targetId)
 
-    const onScroll = () => {
+    const updateVisibility = () => {
       const el = targetElRef.current
       if (!el) {
         setVisible(false)
@@ -33,11 +34,23 @@ export function FloatingCta({
       const rect = el.getBoundingClientRect()
       // Show only after user reaches end of section (bottom enters viewport)
       setVisible(rect.bottom <= window.innerHeight)
+      rafIdRef.current = null
+    }
+
+    const onScroll = () => {
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(updateVisibility)
+      }
     }
 
     window.addEventListener("scroll", onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener("scroll", onScroll)
+    updateVisibility() // Initial check
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+      }
+    }
   }, [targetId])
 
   if (isSignedIn) return null

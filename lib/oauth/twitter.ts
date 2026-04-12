@@ -1,20 +1,21 @@
 import crypto from "crypto";
+import { z } from "zod";
 
-type TwitterTokenResponse = {
-  token_type: string;
-  access_token: string;
-  expires_in: number;
-  refresh_token?: string;
-  scope?: string;
-};
+const twitterTokenResponseSchema = z.object({
+  token_type: z.string(),
+  access_token: z.string(),
+  expires_in: z.number(),
+  refresh_token: z.string().optional(),
+  scope: z.string().optional(),
+});
 
-type TwitterMeResponse = {
-  data?: {
-    id: string;
-    name?: string;
-    username?: string;
-  };
-};
+const twitterMeResponseSchema = z.object({
+  data: z.object({
+    id: z.string(),
+    name: z.string().optional(),
+    username: z.string().optional(),
+  }).optional(),
+});
 
 function base64UrlEncode(buf: Buffer) {
   return buf
@@ -107,14 +108,14 @@ export async function exchangeTwitterCodeForTokens(code: string, codeVerifier: s
     throw new Error(`Twitter token exchange failed (${res.status}): ${text || res.statusText}`);
   }
 
-  const json = (await res.json()) as unknown;
-  const token = json as TwitterTokenResponse;
-
-  if (!token?.access_token || typeof token.access_token !== "string") {
-    throw new Error("Twitter token exchange returned no access_token");
+  const json = await res.json();
+  const parseResult = twitterTokenResponseSchema.safeParse(json);
+  if (!parseResult.success) {
+    console.error("[twitter] Token response validation failed:", parseResult.error.issues);
+    throw new Error("Twitter token exchange returned invalid response");
   }
 
-  return token;
+  return parseResult.data;
 }
 
 export async function getTwitterUserInfo(accessToken: string) {
@@ -130,10 +131,14 @@ export async function getTwitterUserInfo(accessToken: string) {
     throw new Error(`Twitter userinfo failed (${res.status}): ${text || res.statusText}`);
   }
 
-  const json = (await res.json()) as unknown as TwitterMeResponse;
-  const d = json?.data;
-  if (!d?.id) throw new Error("Twitter userinfo missing user id");
+  const json = await res.json();
+  const parseResult = twitterMeResponseSchema.safeParse(json);
+  if (!parseResult.success || !parseResult.data.data?.id) {
+    console.error("[twitter] Userinfo response validation failed:", parseResult.error?.issues);
+    throw new Error("Twitter userinfo returned invalid response");
+  }
 
+  const d = parseResult.data.data;
   return {
     id: d.id,
     name: d.name ?? null,

@@ -52,7 +52,7 @@ export function LinkedInPreview({
           {authorAvatarUrl ? (
             <Image
               src={authorAvatarUrl}
-              alt=""
+              alt={authorName}
               width={40}
               height={40}
               className="size-10 rounded-full object-cover shrink-0"

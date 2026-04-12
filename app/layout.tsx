@@ -37,6 +37,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* 
+          SECURITY: This inline script is safe because:
+          1. It only reads from localStorage and sets CSS classes/colorScheme
+          2. No user input is interpolated - THEME_STORAGE_KEY is a compile-time constant
+          3. Wrapped in try/catch to fail gracefully
+          4. No DOM manipulation beyond classList/style on documentElement
+          Consider using next/script with strategy="beforeInteractive" if refactoring.
+        */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var k=${JSON.stringify(

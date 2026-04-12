@@ -212,6 +212,18 @@ export function TemplatesView({ initialTemplates }: TemplatesViewProps) {
 
   const modalOpen = showCreate || editing !== null
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteTarget) setDeleteTarget(null)
+        else if (showAiGenerator) setShowAiGenerator(false)
+        else if (modalOpen) closeModal()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [modalOpen, showAiGenerator, deleteTarget])
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

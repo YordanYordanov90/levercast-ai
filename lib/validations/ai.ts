@@ -15,8 +15,8 @@ export const generatePostRequestSchema = z.object({
  * Both strings are always returned; use "" for platforms not requested (see API route + prompt).
  */
 export const generatePostOutputSchema = z.object({
-  linkedin: z.string().max(4000),
-  twitter: z.string().max(500),
+  linkedin: z.string().max(3000),
+  twitter: z.string().max(280),
 });
 
 export const generateTemplateRequestSchema = z.object({

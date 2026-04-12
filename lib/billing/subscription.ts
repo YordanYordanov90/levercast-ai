@@ -90,8 +90,8 @@ export function isSubscriptionActive(status: string | null): boolean {
 
 export async function getMonthlyAiUsage(userId: string): Promise<number> {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const startOfNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 
   const result = await db
     .select({ count: sql<number>`count(*)::int` })

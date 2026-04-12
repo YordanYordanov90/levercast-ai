@@ -1,3 +1,5 @@
+import { z, type ZodSchema } from "zod";
+
 export class ApiError extends Error {
   readonly status: number;
 
@@ -13,9 +15,13 @@ interface ApiEnvelope<T> {
   error?: string;
 }
 
+interface FetchJsonOptions<T> extends RequestInit {
+  schema?: ZodSchema<T>;
+}
+
 export async function fetchJson<T>(
   input: RequestInfo | URL,
-  init?: RequestInit,
+  init?: FetchJsonOptions<T>,
 ): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body !== undefined && !headers.has("Content-Type")) {
@@ -37,6 +43,16 @@ export async function fetchJson<T>(
         ? envelope.error
         : res.statusText || "Request failed";
     throw new ApiError(res.status, msg);
+  }
+
+  // Validate response with Zod schema if provided
+  if (init?.schema) {
+    const result = init.schema.safeParse(envelope.data);
+    if (!result.success) {
+      console.error("[fetchJson] Response validation failed:", result.error.issues);
+      throw new ApiError(500, "Invalid response format from server");
+    }
+    return result.data as T;
   }
 
   return envelope.data as T;

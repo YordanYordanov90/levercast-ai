@@ -88,6 +88,7 @@ export function ImageUpload({ images, onChange, maxImages = 3 }: ImageUploadProp
     <div className="space-y-3">
       {/* Upload Zone */}
       <div
+        id="image-upload"
         role="button"
         tabIndex={0}
         onClick={handleClick}
